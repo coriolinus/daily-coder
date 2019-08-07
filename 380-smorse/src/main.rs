@@ -1,5 +1,5 @@
 use counter::Counter;
-use smorse::smorse;
+use smorse::{smalpha, smorse};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs::File;
@@ -11,7 +11,7 @@ use structopt::StructOpt;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "smorse", about = "convert strings to squashed morse code")]
 struct Opts {
-    /// convert a lowercase string
+    /// convert a lowercase string to squashed morse
     input: Option<String>,
 
     /// path to wordlist
@@ -37,6 +37,10 @@ struct Opts {
     /// find all 13-char sequences which do not appear in the encoding of any word
     #[structopt(long = "bonus-1-5")]
     bonus_1_5: bool,
+
+    /// search for permutations of an alphabet which produce this squashed morse value
+    #[structopt(long)]
+    smalpha: Option<String>,
 }
 
 type Rv = Result<(), Box<dyn Error>>;
@@ -78,6 +82,20 @@ fn main() -> Rv {
     } else {
         if opts.bonus_1_1 || opts.bonus_1_2 || opts.bonus_1_3 || opts.bonus_1_4 || opts.bonus_1_5 {
             eprintln!("bonus challenges require wordlist");
+        }
+    }
+
+    if let Some(s) = opts.smalpha {
+        let expect = smorse(&(b'a'..=b'z').map(char::from).collect::<String>())
+            .chars()
+            .collect::<Counter<_>>();
+        let got = s.trim().chars().collect::<Counter<_>>();
+        if expect != got {
+            eprintln!("Bad input for smalpha: require:\n{:#?}", expect);
+        }
+        match smalpha(&s) {
+            None => println!("no permutation found for this alphabet"),
+            Some(s) => println!("{}", s),
         }
     }
 
