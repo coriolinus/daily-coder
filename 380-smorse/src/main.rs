@@ -41,6 +41,10 @@ struct Opts {
     /// search for permutations of an alphabet which produce this squashed morse value
     #[structopt(long)]
     smalpha: Option<String>,
+
+    /// search for permutations of an alphabet which produce this sm value for each line in this input file
+    #[structopt(long="smorse-file",parse(from_os_str))]
+    smorse_file: Option<PathBuf>,
 }
 
 type Rv = Result<(), Box<dyn Error>>;
@@ -96,6 +100,12 @@ fn main() -> Rv {
         match smalpha(&s) {
             None => println!("no permutation found for this alphabet"),
             Some(s) => println!("{}", s),
+        }
+    }
+
+    if let Some(path) = opts.smorse_file {
+        for input in get_words(&path)? {
+            println!("{} -> {:?}", input, smalpha(&input));
         }
     }
 
