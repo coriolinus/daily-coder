@@ -43,7 +43,7 @@ struct Opts {
     smalpha: Option<String>,
 
     /// search for permutations of an alphabet which produce this sm value for each line in this input file
-    #[structopt(long="smorse-file",parse(from_os_str))]
+    #[structopt(long = "smorse-file", parse(from_os_str))]
     smorse_file: Option<PathBuf>,
 }
 
