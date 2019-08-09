@@ -1,5 +1,5 @@
 use counter::Counter;
-use smorse::{smalpha, smorse};
+use smorse::{smalpha, smalpha_all, smorse};
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs::File;
@@ -45,6 +45,10 @@ struct Opts {
     /// search for permutations of an alphabet which produce this sm value for each line in this input file
     #[structopt(long = "smorse-file", parse(from_os_str))]
     smorse_file: Option<PathBuf>,
+
+    /// find lexicographically minimal input which produces exactly one alphabet
+    #[structopt(long = "bonus-2-2")]
+    bonus_2_2: Option<Option<i128>>,
 }
 
 type Rv = Result<(), Box<dyn Error>>;
@@ -107,6 +111,10 @@ fn main() -> Rv {
         for input in get_words(&path)? {
             println!("{} -> {:?}", input, smalpha(&input));
         }
+    }
+
+    if let Some(start) = opts.bonus_2_2 {
+        bonus_2_2(start);
     }
 
     Ok(())
@@ -211,4 +219,51 @@ fn bonus_1_5(wl_path: &Path) -> Rv {
     }
 
     Ok(())
+}
+
+/// Find lexicographically minimal input which produces exactly one alphabet.
+///
+/// Every input which produces an alphabet contains 82 dots and dashes, and
+/// no other symbols. Of those, 44 are dots, and 38 are dashes.
+///
+/// Lexicographically, dashes are lower than dots. We can therefore restate
+/// the problem as: Representing dashes as 0 and dots as 1, find the lowest
+/// number containing 44 `1` bits and 38 `0` bits, which when suitably transformed
+/// produces exactly one alphabet.
+///
+/// Because of this restatement, we can sharply reduce the number of permutations
+/// we must consider, because there are efficient algorithms for generating
+/// integers containing exactly N `1` bits.
+fn bonus_2_2(start: Option<i128>) {
+    // this is expected to be a long-running process, so we
+    use smorse::input_generator::InputGenerator;
+    use std::io::stdout;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+
+    let halt = Arc::new(AtomicBool::new(false));
+    let hhalt = halt.clone(); // gets moved into the handler
+
+    ctrlc::set_handler(move || hhalt.store(true, Ordering::SeqCst))
+        .expect("Error setting Ctrl-C handler");
+
+    for (idx, input) in InputGenerator::maybe_start_at(start).enumerate() {
+        // emit some output every once in a while just to demonstrate activity
+        if idx & 0xfffff == 0 {
+            print!(".");
+            stdout().flush().expect("flushing stdout");
+        }
+        // check the interrupt every 256 iterations
+        if idx & 0xfff == 0 && halt.load(Ordering::SeqCst) {
+            println!();
+            println!("Checked {} inputs; continue with", idx);
+            println!("  smorse --bonus-2-2 {}", InputGenerator::i2n(&input));
+            break;
+        }
+        if smalpha_all(&input).take(2).count() == 1 {
+            println!();
+            println!("{} => {}", input, smalpha(&input).unwrap());
+            break;
+        }
+    }
 }

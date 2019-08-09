@@ -1,6 +1,8 @@
 use lazy_static::lazy_static;
 use std::collections::HashSet;
 
+pub mod input_generator;
+
 lazy_static! {
     pub static ref MORSE: Vec<&'static str> = ".- -... -.-. -.. . ..-. --. .... .. .--- -.- .-.. -- -. --- .--. --.- .-. ... - ..- ...- .-- -..- -.-- --..".split(' ').collect();
 }
