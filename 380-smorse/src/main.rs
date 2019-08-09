@@ -236,8 +236,9 @@ fn bonus_1_5(wl_path: &Path) -> Rv {
 /// integers containing exactly N `1` bits.
 fn bonus_2_2(start: Option<i128>) {
     // this is expected to be a long-running process, so we
+    use rayon::iter::ParallelBridge;
+    use rayon::prelude::ParallelIterator;
     use smorse::input_generator::InputGenerator;
-    use std::io::stdout;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
 
@@ -247,23 +248,31 @@ fn bonus_2_2(start: Option<i128>) {
     ctrlc::set_handler(move || hhalt.store(true, Ordering::SeqCst))
         .expect("Error setting Ctrl-C handler");
 
-    for (idx, input) in InputGenerator::maybe_start_at(start).enumerate() {
-        // emit some output every once in a while just to demonstrate activity
-        if idx & 0xfffff == 0 {
-            print!(".");
-            stdout().flush().expect("flushing stdout");
-        }
-        // check the interrupt every 256 iterations
-        if idx & 0xfff == 0 && halt.load(Ordering::SeqCst) {
-            println!();
-            println!("Checked {} inputs; continue with", idx);
-            println!("  smorse --bonus-2-2 {}", InputGenerator::i2n(&input));
-            break;
-        }
-        if smalpha_all(&input).take(2).count() == 1 {
-            println!();
-            println!("{} => {}", input, smalpha(&input).unwrap());
-            break;
-        }
+    if let Some((_, input)) = InputGenerator::maybe_start_at(start)
+        .enumerate()
+        .par_bridge()
+        .inspect(|(idx, input)| {
+            // emit some output every once in a while just to demonstrate activity
+            if idx & 0xff_ffff == 0 {
+                println!("{}", input);
+            }
+        })
+        .map_with(halt, |halt, (idx, input)| {
+            // check the interrupt every 256 iterations
+            if idx & 0xfff == 0 && halt.load(Ordering::SeqCst) {
+                println!();
+                println!("Checked {} inputs; continue with", idx);
+                println!("  smorse --bonus-2-2 {}", InputGenerator::i2n(&input));
+                None
+            } else {
+                Some((idx, input))
+            }
+        })
+        .while_some()
+        .find_first(|(_, input)| smalpha_all(&input).take(2).count() == 1)
+    {
+        println!("{} => {}", input, smalpha(&input).unwrap());
+    } else {
+        println!("no valid input was found");
     }
 }
