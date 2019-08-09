@@ -119,6 +119,7 @@ impl<'a> Iterator for AlphaSearch<'a> {
                 // recursive pattern will keep generating new combinations for us.
                 self.add_alpha(self.prefix[idx]);
                 self.prefix[idx] += 1;
+                break;
             }
         }
 
@@ -217,7 +218,7 @@ mod test {
     #[test]
     #[ignore]
     // this may take a while...
-    fn test_smalpha_count() {
+    fn test_smalpha_container() {
         let input =
             ".--...-.-.-.....-.--........----.-.-..---.---.--.--.-.-....-..-...-.---..--.----..";
         let results = smalpha_all(input).collect::<Vec<_>>();
@@ -229,5 +230,14 @@ mod test {
             check_result(input, result);
         }
         assert!(results.iter().any(|r| r == "wirnbfzehatqlojpgcvusyxkmd"));
+    }
+
+    #[test]
+    #[ignore]
+    // this may take a while...
+    fn test_smalpha_count() {
+        let input =
+            "......-..--...---.-....---...--....--.-..---.....---.-.---..---.-....--.-.---.-.--";
+        assert_eq!(smalpha_all(input).count(), 41);
     }
 }
